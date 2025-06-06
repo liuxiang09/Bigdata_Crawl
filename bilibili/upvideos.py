@@ -2,8 +2,6 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 import time
@@ -11,64 +9,65 @@ import json
 import os 
 from fake_useragent import UserAgent
 import random
-from popular import JsonSaver
+from jsonsaver import JsonSaver
 from urllib.parse import urljoin
 
-
-# OUTPUT_DIR = "./bilibili/" # 假设这个变量已经存在
-# COOKIES_DIR = "./bilibili/cookies.json" # 假设这个变量已经存在
 
 # 全局常量 (可以根据您的实际项目结构进行调整)
 BILIBILI_URL = "https://bilibili.com" # 主站URL，用于设置Cookies
 COOKIES_FILE_PATH = os.path.join("./bilibili/", "cookies.json") # 您的Cookies文件路径
 OUTPUT_DIR = "./bilibili/" # 输出目录
 BASE_URL = "https://space.bilibili.com" # UP主空间的基准URL
-UP_ID = "386869863" # UP主ID
+UP_ID = "1899240" # UP主ID
 
+# 浏览器配置
+WINDOW_SIZE = "1920,1080"  # 浏览器窗口大小
+HEADLESS_MODE = False  # 是否启用无头模式
+
+# 爬虫行为配置
+SCROLL_ATTEMPTS = 50  # 每页最大滚动次数
+WAIT_TIME = (2, 3)  # 统一的等待时间范围(最小值, 最大值)
+MAX_PAGES = 100  # 最大爬取页数
+
+def random_wait():
+    """统一的随机等待函数"""
+    time.sleep(random.uniform(WAIT_TIME[0], WAIT_TIME[1]))
 
 class UpCrawler:
     
-    def __init__(self, browser_name='chrome', driver_executable_path=None, cookies=None):
+    def __init__(self, driver_executable_path=None, cookies=None):
         
-        self.ua = UserAgent(browsers=['chrome', 'firefox'], os=['windows', 'macos', 'linux']) # 限制浏览器和操作系统，倾向于桌面
+        self.ua = UserAgent(browsers=['chrome'], os=['windows', 'macos', 'linux']) # 限制浏览器和操作系统，倾向于桌面
         random_user_agent = self.ua.random 
         
-        self.driver = None # 替换 self.browser 为 self.driver
+        self.driver = None
         try:
-            if browser_name == 'chrome':
-                chrome_options = ChromeOptions()
-                chrome_options.add_argument("--window-size=1920,1080") # 设置固定窗口大小
-                chrome_options.add_argument(f"user-agent={random_user_agent}") # 设置随机 User-Agent
-                # chrome_options.add_argument("--headless") # 如果需要无头模式
-                # chrome_options.add_argument("--disable-gpu") # 无头模式下可能需要
-                
-                if driver_executable_path:
-                    service = ChromeService(executable_path=driver_executable_path)
-                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
-                else:
-                    self.driver = webdriver.Chrome(options=chrome_options)
-            elif browser_name == 'firefox':
-                firefox_options = FirefoxOptions()
-                firefox_options.set_preference("general.useragent.override", random_user_agent)
-                
-                if driver_executable_path:
-                    service = FirefoxService(executable_path=driver_executable_path)
-                    self.driver = webdriver.Firefox(service=service, options=firefox_options)
-                else:
-                    self.driver = webdriver.Firefox(options=firefox_options)
+            chrome_options = ChromeOptions()
+            chrome_options.add_argument(f"--window-size={WINDOW_SIZE}")
+            chrome_options.add_argument(f"user-agent={random_user_agent}")
+            # 添加处理SSL错误的选项
+            chrome_options.add_argument('--ignore-certificate-errors')
+            chrome_options.add_argument('--ignore-ssl-errors')
+            chrome_options.add_argument('--allow-insecure-localhost')
+            if HEADLESS_MODE:
+                chrome_options.add_argument("--headless")
+                chrome_options.add_argument("--disable-gpu")
+            
+            if driver_executable_path:
+                service = ChromeService(executable_path=driver_executable_path)
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
             else:
-                raise ValueError(f"不支持的浏览器类型: {browser_name}")
+                self.driver = webdriver.Chrome(options=chrome_options)
 
-            print(f"成功启动 {browser_name} 浏览器，使用 User-Agent: {random_user_agent}")
+            print(f"成功启动 Chrome 浏览器，使用 User-Agent: {random_user_agent}")
         except Exception as e:
-            print(f"启动 {browser_name} 浏览器失败: {e}")
+            print(f"启动 Chrome 浏览器失败: {e}")
 
         # --- 添加 Cookies ---
         if self.driver and cookies:
             print("正在添加 Cookies...")
-            # 首先访问一下用于设置 Cookie 的基础域名，通常是主域名
-            self.driver.get(BILIBILI_URL) # 访问主站URL
-            time.sleep(2) # 等待页面加载，确保Cookie可以被设置
+            self.driver.get(BILIBILI_URL)
+            random_wait()  # 等待页面加载，确保Cookie可以被设置
 
             for cookie in cookies:
                 try:
@@ -96,7 +95,7 @@ class UpCrawler:
                         continue
                     
                     print(f"尝试添加 Cookie: {selenium_cookie['name']}")
-                    self.driver.add_cookie(selenium_cookie) # 使用 self.driver.add_cookie
+                    self.driver.add_cookie(selenium_cookie)
 
                 except Exception as cookie_e:
                     print(f"添加 Cookie 失败 ({cookie.get('name', '未知')}): {cookie_e}. 原始Cookie: {cookie}")
@@ -104,22 +103,21 @@ class UpCrawler:
 
             # 调试：打印所有当前浏览器会话中的 Cookies
             print("\n--- 浏览器会话中已设置的 Cookies ---")
-            for c in self.driver.get_cookies(): # 使用 self.driver.get_cookies()
+            for c in self.driver.get_cookies():
                 print(f"  Name: {c.get('name')}, Value: {c.get('value')[:10]}..., Domain: {c.get('domain')}, Path: {c.get('path')}, Secure: {c.get('secure')}")
             print("------------------------------------\n")
 
 
-    def fetch_page(self, url, wait_time=10): # 增加默认等待时间到10秒
+    def fetch_page(self, url):
         """
         使用 Selenium 访问 URL 并获取完整的页面 HTML 内容。
-        wait_time: 等待页面加载的秒数。
         """
         if not self.driver:
             print("浏览器未成功启动，无法获取页面。")
             return None
         try:
-            self.driver.get(url) # 使用 self.driver.get()
-            self.driver.implicitly_wait(wait_time) # 隐式等待元素加载
+            self.driver.get(url)
+            random_wait()  # 等待页面加载
             
             # --- 调试：将获取到的HTML内容保存到文件 ---
             # with open("bilibili_page_content_initial.html", "w", encoding="utf-8") as f:
@@ -134,32 +132,29 @@ class UpCrawler:
             return None
         
 
-    def _scroll_to_end(self, scroll_attempts=50, scroll_pause_time=1.5):
-            """
-            模拟滚动到页面底部，加载所有动态内容。
-            scroll_attempts: 最大滚动尝试次数，防止无限循环。
-            scroll_pause_time: 每次滚动后等待的时间，让新内容加载。
-            """
-            last_height = self.driver.execute_script("return document.body.scrollHeight") # 使用 self.driver
-            no_change_count = 0
+    def _scroll_to_end(self):
+        """
+        模拟滚动到页面底部，加载所有动态内容。
+        """
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        no_change_count = 0
 
-            for i in range(scroll_attempts):
-                print(f"正在进行第 {i+1} 次滚动")
-                # 滚动到页面底部
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);") # 使用 self.driver
-                time.sleep(random.uniform(scroll_pause_time - 0.5, scroll_pause_time + 0.5)) # 增加随机性
-                new_height = self.driver.execute_script("return document.body.scrollHeight") # 使用 self.driver
-                if new_height == last_height:
-                    no_change_count += 1
-                    print(f"页面高度未变化，连续 {no_change_count} 次。")
-                    if no_change_count >= 3: # 连续3次高度未变化，认为已到达底部
-                        print("连续多次页面高度未变化，认为已加载所有内容，停止滚动。")
-                        break
-                else:
-                    no_change_count = 0  # 高度变化，重置计数
+        for i in range(SCROLL_ATTEMPTS):
+            print(f"正在进行第 {i+1} 次滚动")
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            random_wait()  # 等待内容加载
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                no_change_count += 1
+                print(f"页面高度未变化，连续 {no_change_count} 次。")
+                if no_change_count >= 3:
+                    print("连续多次页面高度未变化，认为已加载所有内容，停止滚动。")
+                    break
+            else:
+                no_change_count = 0
 
-                last_height = new_height
-            print(f"滚动完成，开始提取视频信息。")
+            last_height = new_height
+        print(f"滚动完成，开始提取视频信息。")
 
 
     def close_browser(self):
@@ -246,7 +241,7 @@ def main():
 
     # 根据需要指定 chromedriver.exe 的路径
     # driver_path = "D:/path/to/your/chromedriver.exe" 
-    crawler = UpCrawler(browser_name='chrome', driver_executable_path=None, cookies=my_bilibili_cookies) 
+    crawler = UpCrawler(driver_executable_path=None, cookies=my_bilibili_cookies) 
     saver = JsonSaver(output_dir=OUTPUT_DIR) 
 
     if not crawler.driver: # 检查 self.driver 而不是 self.browser
@@ -260,9 +255,9 @@ def main():
         html_content = crawler.fetch_page(target_url) # 获取初始页面HTML
         
         if html_content:
-            for i in range(1, 100):
+            for i in range(1, MAX_PAGES):
                 print(f"正在爬取第 {i} 页......")
-                crawler._scroll_to_end(scroll_attempts=50, scroll_pause_time=1.5) # 调用滚动方法
+                crawler._scroll_to_end() # 调用滚动方法
                 
                 # 滚动完成后，重新获取最新的HTML内容
                 html_content_after_scroll = crawler.driver.page_source # 使用 self.driver.page_source
@@ -282,9 +277,9 @@ def main():
                 else:
                     print("未解析到任何视频信息，请检查解析逻辑或页面结构是否正确。")
 
-                # 查找“下一页”按钮，如果存在则点击，否则跳出循环
+                # 查找"下一页"按钮，如果存在则点击，否则跳出循环
                 try:
-                    # 尝试查找“下一页”按钮
+                    # 尝试查找"下一页"按钮
                     next_btn = crawler.driver.find_element(By.XPATH, "//*[@id='app']/main/div[1]/div[2]/div/div[3]/div/div[1]/button[11]")
                     # 检查按钮是否可点击（有些情况下按钮存在但已禁用）
                     if "disabled" in next_btn.get_attribute("class") or not next_btn.is_enabled():
@@ -293,10 +288,9 @@ def main():
                     else:
                         print("找到下一页按钮，准备点击进入下一页。")
                         next_btn.click()
-                        # 等待页面加载
-                        time.sleep(random.uniform(2, 3))
+                        random_wait()  # 等待页面加载
                 except NoSuchElementException:
-                    print(f"未找到下一页按钮，结束循环。错误信息: {e}")
+                    print("未找到下一页按钮，结束循环。")
                     break
         else:
             print("未获取到任何页面html，请检查是否正确获取page_source。")
