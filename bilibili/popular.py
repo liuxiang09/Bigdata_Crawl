@@ -40,7 +40,7 @@ class BilibiliCrawler:
             print(f"启动 {browser_name} 浏览器失败: {e}")
 
 
-    def fetch_page(self, url, wait_time=5):
+    def fetch_page(self, url, wait_time=10):
         """
         使用 Splinter 访问 URL 并获取完整的页面 HTML 内容。
         wait_time: 等待页面加载的秒数。
@@ -51,7 +51,7 @@ class BilibiliCrawler:
         try:
             self.browser.visit(url)
             # self.browser.driver.implicitly_wait(wait_time) # 隐式等待元素加载
-            is_present = self.browser.is_element_present_by_css(".video-card", wait_time=20)
+            is_present = self.browser.is_element_present_by_css(".video-card", wait_time=wait_time)
             if not is_present:
                 print(f"警告: 在 {wait_time} 秒内未找到 CSS 选择器")
             self._scroll_to_end()
@@ -65,7 +65,7 @@ class BilibiliCrawler:
         except Exception as e:
             print(f"使用 Splinter 请求 {url} 失败: {e}")
             return None
-        
+
 
     def _scroll_to_end(self, scroll_attempts=20):
         """
@@ -152,31 +152,44 @@ class BilibiliCrawler:
 
         return video_list
 
+# JsonSaver 类的定义
 class JsonSaver:
     def __init__(self, output_dir="."):
-        """
-        初始化 JsonSaver。
-        output_dir: 文件保存地址。
-        """
         self.output_dir = output_dir
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-    def save_to_json(self, data, filename='output.json'):
-        """
-        将字典或列表数据保存为 JSON 文件。
-        data: 要保存的数据（通常是列表或字典）。
-        filename: 保存的文件名。
-        """
+    def save_to_json(self, data, filename="output.json", append=False):
         file_path = os.path.join(self.output_dir, filename)
+        final_data = data
+
+        if append and os.path.exists(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    existing_data = json.load(f)
+                
+                if isinstance(existing_data, list) and isinstance(data, list):
+                    final_data = existing_data + data
+                    print(f"检测到现有数据，追加 {len(data)} 条新数据。")
+                elif isinstance(existing_data, dict) and isinstance(data, dict):
+                    final_data = {**existing_data, **data}
+                    print(f"检测到现有数据，合并新数据。")
+                else:
+                    print("现有文件格式与要追加的数据格式不匹配，将覆盖写入。")
+                    final_data = data
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"读取现有文件失败或格式错误: {e}，将直接覆盖写入。")
+                final_data = data
+        
         try:
-            with open(file_path, "w", encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-                print(f"数据已成功保存到文件: {file_path}")
-                return True
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(final_data, f, ensure_ascii=False, indent=4)
+            print(f"数据已成功保存到文件: {file_path}")
+            return True
         except IOError as e:
             print(f"写入文件失败: {e}")
             return False
+        
 def main():
     # crawler = BilibiliCrawler(browser_name='chrome', driver_executable_path='D:/path/to/your/chromedriver.exe')
     crawler = BilibiliCrawler() # 默认使用chrome，并且假设chromedriver在PATH中
