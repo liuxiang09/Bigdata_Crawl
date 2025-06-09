@@ -16,7 +16,7 @@ class QuotesSpider(scrapy.Spider):
         'SELENIUM_DRIVER_ARGUMENTS': ['--headless'],  # 无头模式运行
     }
 
-    def start_requests(self):
+    async def start(self):
         """
         起始请求，使用 SeleniumRequest
         """
@@ -28,7 +28,7 @@ class QuotesSpider(scrapy.Spider):
                 url=url, 
                 callback=self.parse,
                 wait_time=10,
-                wait_until=EC.presence_of_element_located((By.CLASS_NAME, 'quote')),
+                wait_until=EC.presence_of_element_located((By.CLASS_NAME, 'quote'))
             )
 
     def parse(self, response):
@@ -45,7 +45,7 @@ class QuotesSpider(scrapy.Spider):
             current_page = None
 
         # 解析数据
-        quotes = response.selector.css('div.quote')
+        quotes = response.css('div.quote')
         for quote in quotes:
             yield {
                 'text': quote.css('span.text::text').get(),

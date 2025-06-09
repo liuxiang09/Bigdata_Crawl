@@ -33,7 +33,7 @@ DOWNLOAD_DELAY = 2  # 添加延迟，避免被封IP
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
-#COOKIES_ENABLED = False
+COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
@@ -97,4 +97,4 @@ FEED_EXPORT_ENCODING = "utf-8"
 # -- Selenium相关设置 - 已注释掉，使用Playwright代替 --
 SELENIUM_DRIVER_NAME = 'chrome'
 # SELENIUM_DRIVER_EXECUTABLE_PATH = "D:\\chromedriver-win64\\chromedriver.exe"
-SELENIUM_DRIVER_ARGUMENTS = ['--no-headless']
+SELENIUM_DRIVER_ARGUMENTS = ['--no-headless', '--start-maximized']
