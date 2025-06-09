@@ -82,3 +82,4 @@ class QuotesSpider(scrapy.Spider):
             
         except Exception as e:
             self.logger.info(f"已经是最后一页，找不到'Next'按钮或加载失败: {e}")
+            return

@@ -55,7 +55,7 @@ DEFAULT_REQUEST_HEADERS = {
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
    "bilibili_crawler.middlewares.BilibiliCrawlerDownloaderMiddleware": 543,
-   "scrapy_selenium.SeleniumMiddleware": 800,
+   "bilibili_crawler.middlewares.SeleniumMiddleware": 800,
 }
 
 # Enable or disable extensions
