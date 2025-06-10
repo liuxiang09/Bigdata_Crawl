@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 import time
 import random
-
+from settings import BILIBILI_COOKIES
 
 class IndexSpider(scrapy.Spider):
     name = "index"
@@ -27,26 +27,7 @@ class IndexSpider(scrapy.Spider):
             f'--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         ],
     }
-    custom_cookies = [
-                {
-                    "domain": ".bilibili.com",
-                    "hostOnly": False,
-                    "httpOnly": True,
-                    "name": "SESSDATA",
-                    "path": "/",
-                    "secure": True,
-                    "value": "5293d25b%2C1764909930%2C4cb2e%2A61CjBD5u0FJ2lUSrtF0MaAHxnMQI_wFm5FWnrb1Qb-Yz7HxGxNFre0vNUEdFmtrlG3F-ESVllVZEkxOVVSQUR5OWtkWkVfMEZjTV9wMWgyQUtNU1BOb2Z2T0o1NEZ5cTl2bUVnTnNTV0lSQ0daUGl4R2g1TV9maUVLOF9kS0loS1FKRHdZVE9mSDZ3IIEC",
-                },
-                {
-                    "domain": ".bilibili.com",
-                    "hostOnly": False,
-                    "httpOnly": False,
-                    "name": "bili_jct",
-                    "path": "/",
-                    "secure": False,
-                    "value": "a4a51c870475d313181a3ba88a85bf98",
-                },
-    ]
+    cookies = BILIBILI_COOKIES
     async def start(self):
         for url in self.start_urls:
             yield SeleniumRequest(
@@ -54,7 +35,7 @@ class IndexSpider(scrapy.Spider):
                 callback=self.parse,
                 wait_time=10,
                 wait_until=EC.presence_of_element_located((By.CLASS_NAME, 'feed-card')),
-                cookies = self.custom_cookies,
+                cookies = self.cookies,
             )
             
     def parse(self, response):

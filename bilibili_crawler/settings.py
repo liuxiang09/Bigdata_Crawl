@@ -98,3 +98,24 @@ FEED_EXPORT_ENCODING = "utf-8"
 SELENIUM_DRIVER_NAME = 'chrome'
 # SELENIUM_DRIVER_EXECUTABLE_PATH = "D:\\chromedriver-win64\\chromedriver.exe"
 SELENIUM_DRIVER_ARGUMENTS = ['--no-headless', '--start-maximized']
+
+BILIBILI_COOKIES = [
+               {
+                  "domain": ".bilibili.com",
+                  "hostOnly": False,
+                  "httpOnly": True,
+                  "name": "SESSDATA",
+                  "path": "/",
+                  "secure": True,
+                  "value": "5293d25b%2C1764909930%2C4cb2e%2A61CjBD5u0FJ2lUSrtF0MaAHxnMQI_wFm5FWnrb1Qb-Yz7HxGxNFre0vNUEdFmtrlG3F-ESVllVZEkxOVVSQUR5OWtkWkVfMEZjTV9wMWgyQUtNU1BOb2Z2T0o1NEZ5cTl2bUVnTnNTV0lSQ0daUGl4R2g1TV9maUVLOF9kS0loS1FKRHdZVE9mSDZ3IIEC",
+               },
+               {
+                  "domain": ".bilibili.com",
+                  "hostOnly": False,
+                  "httpOnly": False,
+                  "name": "bili_jct",
+                  "path": "/",
+                  "secure": False,
+                  "value": "a4a51c870475d313181a3ba88a85bf98",
+               },
+            ]

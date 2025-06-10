@@ -52,7 +52,7 @@ conda activate spider
 pip install -r requirements.txt
 ```
 
-> 依赖主要包括：scrapy、scrapy-selenium、selenium、chromedriver-autoinstaller 等。
+> 依赖主要包括：scrapy、scrapy-selenium、selenium 等。
 
 ### 5. 配置 ChromeDriver
 
@@ -63,7 +63,7 @@ pip install -r requirements.txt
 
 ### 6. 配置 Cookie（可选）
 
-如需采集登录后内容，请在 `bilibili_crawler/spiders/index.py` 中配置你的 Cookie 信息。
+如需采集登录后内容，请在 `bilibili_crawler/settings.py` 中配置你的 Cookie 信息。
 
 ---
 
